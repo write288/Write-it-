@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Free Infinite Sketchpad</title>
+    <style>
+        /* Optimizes layout for mobile screens */
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #1e1e24; }
+        
+        /* Canvas configuration */
+        canvas { width: 100%; height: 100%; display: block; background: #ffffff; cursor: crosshair; }
+        
+        /* Fixed bottom controls overlay */
+        #controls { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; background: rgba(30, 30, 30, 0.9); padding: 12px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 90%; max-width: 400px; border: 1px solid rgba(255,255,255,0.1); }
+        .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        
+        /* Styling color selections */
+        .color-pickers { display: flex; gap: 8px; }
+        .color-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+        .color-dot.active { border-color: #ffffff; transform: scale(1.1); }
+        
+        /* Action buttons */
+        .btn { background: #ff4757; color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: bold; font-size: 14px; cursor: pointer; flex-grow: 1; text-align: center; }
+        .btn-clear { background: #2f3542; }
+        
+        /* Slider input sizing */
+        input[type="range"] { flex-grow: 1; accent-color: #2ed573; height: 6px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <canvas id="paintCanvas"></canvas>
+
+    <!-- Mobile UI Controls -->
+    <div id="controls">
+        <div class="row">
+            <div class="color-pickers">
+                <div class="color-dot active" style="background: #2f3542;" onclick="changeColor('#2f3542', this)"></div>
+                <div class="color-dot" style="background: #ff4757;" onclick="changeColor('#ff4757', this)"></div>
+                <div class="color-dot" style="background: #2ed573;" onclick="changeColor('#2ed573', this)"></div>
+                <div class="color-dot" style="background: #1e90ff;" onclick="changeColor('#1e90ff', this)"></div>
+                <div class="color-dot" style="background: #ffa502;" onclick="changeColor('#ffa502', this)"></div>
+            </div>
+            <button class="btn btn-clear" onclick="clearCanvas()">Clear</button>
+        </div>
+        <div class="row">
+            <span style="color: white; font-size: 12px; min-width: 65px;">Size: <span id="sizeVal">5</span>px</span>
+            <input type="range" id="brushSize" min="2" max="30" value="5" oninput="changeSize(this.value)">
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d');
+        const sizeVal = document.getElementById('sizeVal');
+        
+        let isDrawing = false;
+        let currentScale = 1;
+
+        // Automatically configure dimensions to fit the precise device screen
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // Re-apply baseline path preferences after clear/resize loops
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = document.getElementById('brushSize').value;
+            // Retain currently active selection color properties
+            const activeColor = document.querySelector('.color-dot.active').style.backgroundColor;
+            ctx.strokeStyle = activeColor;
+        }
+
+        function changeColor(color, element) {
+            ctx.strokeStyle = color;
+            document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function changeSize(size) {
+            ctx.lineWidth = size;
+            sizeVal.innerText = size;
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Helper calculations tracking precision touch trajectories
+        function getTouchCoordinates(e) {
+            const touch = e.touches[0];
+            return { x: touch.clientX, y: touch.clientY };
+        }
+
+        // Hardware-optimized touch event intercept hooks
+        canvas.addEventListener('touchstart', (e) => {
+            isDrawing = true;
+            const pos = getTouchCoordinates(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            e.preventDefault(); 
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!isDrawing) return;
+            const pos = getTouchCoordinates(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            isDrawing = false;
+            ctx.closePath();
+        });
+
+        // Initialize display configuration layout rules
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
